@@ -1,0 +1,74 @@
+package com.example.threads;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class BFSTreeTravesal {
+    public static volatile Queue<Node> bfsQueue = new LinkedList<>();
+
+    public static void main(String[] args) {
+        Node root = new Node(1);
+        root.left = new Node(2);
+        root.right = new Node(5);
+        root.left.left = new Node(3);
+        root.left.right = new Node(4);
+        root.right.left = new Node(6);
+        root.right.right = new Node(7);
+
+        printTree(root);
+        BFSTreeTravesal treeTravesal = new BFSTreeTravesal();
+        treeTravesal.bfsTraversal(root);
+    }
+
+    private static void printTree(Node root) {
+        if (root == null)
+            return;
+        System.out.println(root.data);
+        printTree(root.left);
+        printTree(root.right);
+    }
+
+    public void bfsTraversal(Node root) {
+        bfsQueue.add(root);
+
+        ExecutorService threadPool = Executors.newFixedThreadPool(3);
+        while (!bfsQueue.isEmpty()) {
+            threadPool.execute(() -> {
+                try {
+                    synchronized (bfsQueue) {
+                        if (!bfsQueue.isEmpty())
+                            processInQueue();
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            });
+        }
+        threadPool.shutdown();
+    }
+    /*
+            1
+        2       5
+      3  4    6   7
+     */
+
+    private void processInQueue() throws InterruptedException {
+        Node nodeToProcess = null;
+        synchronized (bfsQueue) {
+            if (!bfsQueue.isEmpty()) {
+                nodeToProcess = bfsQueue.remove();
+            }
+            if (nodeToProcess.left != null)
+                bfsQueue.add(nodeToProcess.left);
+            if (nodeToProcess.right != null)
+                bfsQueue.add(nodeToProcess.right);
+        }
+        System.out.println(Thread.currentThread().getName() + " " + nodeToProcess.data);
+        Thread.sleep(2000);
+
+    }
+}
+
