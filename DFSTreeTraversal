@@ -1,0 +1,74 @@
+package com.example.threads;
+
+import java.util.Stack;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class DFSTreeTraversal {
+
+    Stack<Node> stackDFS = new Stack<>();
+
+     /*
+            1
+        2       5
+      3  4    6   7
+     */
+
+
+    public static void main(String[] args) {
+        Node root = new Node(1);
+        root.left = new Node(2);
+        root.right = new Node(5);
+        root.right.left = new Node(6);
+        root.left.left = new Node(3);
+        root.left.right = new Node(4);
+        root.right.right = new Node(7);
+
+
+        printTree(root);
+        DFSTreeTraversal treeTraversal = new DFSTreeTraversal();
+        treeTraversal.dfsTraversal(root);
+    }
+
+    private static void printTree(Node root) {
+        if (root == null)
+            return;
+        System.out.println(root.data);
+        printTree(root.left);
+        printTree(root.right);
+    }
+
+    private void dfsTraversal(Node root) {
+        stackDFS.push(root);
+        ExecutorService threadPool = Executors.newFixedThreadPool(3);
+
+        while (!stackDFS.empty()) {
+            threadPool.execute(() -> {
+                        try {
+                            synchronized (stackDFS) {
+                                processDFS();
+                            }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+            );
+        }
+        threadPool.shutdown();
+    }
+
+    private void processDFS() throws InterruptedException {
+        synchronized (stackDFS) {
+            if (!stackDFS.empty()) {
+                Node currentNode = stackDFS.pop();
+                System.out.println("Thread name:" + Thread.currentThread().getName() + " " + currentNode.data);
+
+                if (currentNode.right != null)
+                    stackDFS.push(currentNode.right);
+                if (currentNode.left != null)
+                    stackDFS.push(currentNode.left);
+            }
+        }
+        Thread.sleep(500);
+    }
+}
